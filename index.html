@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cricket Management Application</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background-color: #f4f4f9;
+    }
+    .container {
+      max-width: 800px;
+      margin: auto;
+      padding: 20px;
+      background: #ffffff;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+    h1, h2 {
+      text-align: center;
+    }
+    .form-group {
+      margin-bottom: 15px;
+    }
+    .form-group label {
+      display: block;
+      margin-bottom: 5px;
+    }
+    .form-group input, .form-group select {
+      width: 100%;
+      padding: 8px;
+      box-sizing: border-box;
+    }
+    .score-board {
+      margin-top: 20px;
+      padding: 10px;
+      background: #eaf4ff;
+      border-radius: 8px;
+    }
+    .actions button {
+      padding: 10px 20px;
+      margin: 5px;
+      border: none;
+      border-radius: 5px;
+      background: #007bff;
+      color: white;
+      cursor: pointer;
+    }
+    .actions button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Cricket Management Application</h1>
+
+    <div id="setup">
+      <h2>Game Setup</h2>
+      <div class="form-group">
+        <label for="team1">Team 1 Name:</label>
+        <input type="text" id="team1" placeholder="Enter Team 1 Name">
+      </div>
+      <div class="form-group">
+        <label for="team2">Team 2 Name:</label>
+        <input type="text" id="team2" placeholder="Enter Team 2 Name">
+      </div>
+      <div class="form-group">
+        <label for="tossWinner">Who won the toss?</label>
+        <select id="tossWinner">
+          <option value="">Select</option>
+          <option value="team1">Team 1</option>
+          <option value="team2">Team 2</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="batFirst">Who will bat first?</label>
+        <select id="batFirst">
+          <option value="">Select</option>
+          <option value="team1">Team 1</option>
+          <option value="team2">Team 2</option>
+        </select>
+      </div>
+      <div class="actions">
+        <button id="startGame">Start Game</button>
+      </div>
+    </div>
+
+    <div id="game" style="display: none;">
+      <h2>Live Scoreboard</h2>
+      <div id="scoreBoard" class="score-board">
+        <h3 id="currentInning"></h3>
+        <p id="score">Score: 0/0</p>
+        <p id="overs">Overs: 0.0</p>
+      </div>
+      <div class="form-group">
+        <label>Runs Scored:</label>
+        <div class="actions">
+          <button data-runs="0">0</button>
+          <button data-runs="1">1</button>
+          <button data-runs="2">2</button>
+          <button data-runs="3">3</button>
+          <button data-runs="4">4</button>
+          <button data-runs="6">6</button>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Extras:</label>
+        <div class="actions">
+          <button id="noBallButton">No Ball</button>
+          <button id="wideBallButton">Wide Ball</button>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Wicket:</label>
+        <div class="actions">
+          <button id="wicketButton">Wicket</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const startGameBtn = document.getElementById('startGame');
+    const setupDiv = document.getElementById('setup');
+    const gameDiv = document.getElementById('game');
+    const scoreButtons = document.querySelectorAll('[data-runs]');
+    const noBallButton = document.getElementById('noBallButton');
+    const wideBallButton = document.getElementById('wideBallButton');
+    const wicketButton = document.getElementById('wicketButton');
+
+    let currentTeam, currentRuns = 0, currentWickets = 0, currentBalls = 0;
+
+    function initializeGame() {
+      const team1 = document.getElementById('team1').value;
+      const team2 = document.getElementById('team2').value;
+      const tossWinner = document.getElementById('tossWinner').value;
+      const batFirst = document.getElementById('batFirst').value;
+
+      if (!team1 || !team2 || !tossWinner || !batFirst) {
+        alert('Please complete all fields!');
+        return;
+      }
+
+      currentTeam = batFirst === 'team1' ? team1 : team2;
+      document.getElementById('currentInning').innerText = `${currentTeam} is batting`;
+
+      setupDiv.style.display = 'none';
+      gameDiv.style.display = 'block';
+    }
+
+    function updateScore(runs = 0, isWicket = false, isExtra = false) {
+      if (isWicket) {
+        currentWickets += 1;
+      } else {
+        currentRuns += runs;
+      }
+      if (!isExtra) {
+        currentBalls += 1;
+      }
+
+      const overs = Math.floor(currentBalls / 6);
+      const balls = currentBalls % 6;
+
+      document.getElementById('score').innerText = `Score: ${currentRuns}/${currentWickets}`;
+      document.getElementById('overs').innerText = `Overs: ${overs}.${balls}`;
+
+      if (currentBalls === 60 || currentWickets === 10) {
+        alert(`${currentTeam}'s innings is over!`);
+        disableGameControls();
+      }
+    }
+
+    function disableGameControls() {
+      scoreButtons.forEach(button => button.disabled = true);
+      noBallButton.disabled = true;
+      wideBallButton.disabled = true;
+      wicketButton.disabled = true;
+    }
+
+    startGameBtn.addEventListener('click', initializeGame);
+
+    scoreButtons.forEach(button => {
+      button.addEventListener('click', (e) => {
+        const runs = parseInt(e.target.getAttribute('data-runs'));
+        updateScore(runs);
+      });
+    });
+
+    noBallButton.addEventListener('click', () => {
+      updateScore(1, false, true);
+    });
+
+    wideBallButton.addEventListener('click', () => {
+      updateScore(1, false, true);
+    });
+
+    wicketButton.addEventListener('click', () => {
+      updateScore(0, true);
+    });
+  </script>
+</body>
+</html>
