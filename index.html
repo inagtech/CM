@@ -85,6 +85,10 @@
           <option value="team2">Team 2</option>
         </select>
       </div>
+      <div class="form-group">
+        <label for="overs">Number of Overs:</label>
+        <input type="number" id="overs" placeholder="Enter Number of Overs" min="1">
+      </div>
       <div class="actions">
         <button id="startGame">Start Game</button>
       </div>
@@ -122,32 +126,45 @@
         </div>
       </div>
     </div>
+
+    <div id="result" style="display: none;">
+      <h2>Match Summary</h2>
+      <div id="summary" class="score-board"></div>
+    </div>
   </div>
 
   <script>
     const startGameBtn = document.getElementById('startGame');
     const setupDiv = document.getElementById('setup');
     const gameDiv = document.getElementById('game');
+    const resultDiv = document.getElementById('result');
+    const summaryDiv = document.getElementById('summary');
     const scoreButtons = document.querySelectorAll('[data-runs]');
     const noBallButton = document.getElementById('noBallButton');
     const wideBallButton = document.getElementById('wideBallButton');
     const wicketButton = document.getElementById('wicketButton');
 
-    let currentTeam, currentRuns = 0, currentWickets = 0, currentBalls = 0;
+    let teams = {};
+    let currentTeam, currentRuns = 0, currentWickets = 0, currentBalls = 0, maxBalls;
+    let innings = 1;
 
     function initializeGame() {
       const team1 = document.getElementById('team1').value;
       const team2 = document.getElementById('team2').value;
       const tossWinner = document.getElementById('tossWinner').value;
       const batFirst = document.getElementById('batFirst').value;
+      const overs = parseInt(document.getElementById('overs').value);
 
-      if (!team1 || !team2 || !tossWinner || !batFirst) {
+      if (!team1 || !team2 || !tossWinner || !batFirst || !overs) {
         alert('Please complete all fields!');
         return;
       }
 
-      currentTeam = batFirst === 'team1' ? team1 : team2;
-      document.getElementById('currentInning').innerText = `${currentTeam} is batting`;
+      maxBalls = overs * 6;
+      teams = { team1: { name: team1, runs: 0, wickets: 0, balls: 0 }, team2: { name: team2, runs: 0, wickets: 0, balls: 0 } };
+
+      currentTeam = batFirst === 'team1' ? 'team1' : 'team2';
+      document.getElementById('currentInning').innerText = `${teams[currentTeam].name} is batting`;
 
       setupDiv.style.display = 'none';
       gameDiv.style.display = 'block';
@@ -155,31 +172,60 @@
 
     function updateScore(runs = 0, isWicket = false, isExtra = false) {
       if (isWicket) {
-        currentWickets += 1;
+        teams[currentTeam].wickets += 1;
       } else {
-        currentRuns += runs;
+        teams[currentTeam].runs += runs;
       }
+
       if (!isExtra) {
-        currentBalls += 1;
+        teams[currentTeam].balls += 1;
       }
 
-      const overs = Math.floor(currentBalls / 6);
-      const balls = currentBalls % 6;
+      const overs = Math.floor(teams[currentTeam].balls / 6);
+      const balls = teams[currentTeam].balls % 6;
 
-      document.getElementById('score').innerText = `Score: ${currentRuns}/${currentWickets}`;
+      document.getElementById('score').innerText = `Score: ${teams[currentTeam].runs}/${teams[currentTeam].wickets}`;
       document.getElementById('overs').innerText = `Overs: ${overs}.${balls}`;
 
-      if (currentBalls === 60 || currentWickets === 10) {
-        alert(`${currentTeam}'s innings is over!`);
-        disableGameControls();
+      if (teams[currentTeam].balls === maxBalls || teams[currentTeam].wickets === 10) {
+        if (innings === 1) {
+          innings = 2;
+          currentTeam = currentTeam === 'team1' ? 'team2' : 'team1';
+          document.getElementById('currentInning').innerText = `${teams[currentTeam].name} is batting`;
+          resetInnings();
+        } else {
+          endGame();
+        }
       }
     }
 
-    function disableGameControls() {
-      scoreButtons.forEach(button => button.disabled = true);
-      noBallButton.disabled = true;
-      wideBallButton.disabled = true;
-      wicketButton.disabled = true;
+    function resetInnings() {
+      currentRuns = 0;
+      currentWickets = 0;
+      currentBalls = 0;
+    }
+
+    function endGame() {
+      gameDiv.style.display = 'none';
+      resultDiv.style.display = 'block';
+
+      const team1 = teams.team1;
+      const team2 = teams.team2;
+
+      let result;
+      if (team1.runs > team2.runs) {
+        result = `${team1.name} wins by ${team1.runs - team2.runs} runs!`;
+      } else if (team2.runs > team1.runs) {
+        result = `${team2.name} wins by ${10 - team2.wickets} wickets!`;
+      } else {
+        result = "It's a tie!";
+      }
+
+      summaryDiv.innerHTML = `
+        <p>${team1.name}: ${team1.runs}/${team1.wickets} in ${Math.floor(team1.balls / 6)}.${team1.balls % 6} overs</p>
+        <p>${team2.name}: ${team2.runs}/${team2.wickets} in ${Math.floor(team2.balls / 6)}.${team2.balls % 6} overs</p>
+        <h3>${result}</h3>
+      `;
     }
 
     startGameBtn.addEventListener('click', initializeGame);
